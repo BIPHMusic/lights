@@ -299,13 +299,23 @@
                 sectionContent.className = 'section-content';
 
                 const sliderContainer = document.createElement('div');
-                sliderContainer.className = 'slider-container';
-                const slider = document.createElement('input');
-                slider.type = 'range';
-                slider.className = 'vertical-slider';
-                slider.min = 0;
-                slider.max = 127;
-                sliderContainer.appendChild(slider);
+            sliderContainer.className = 'slider-container';
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.className = 'vertical-slider';
+            slider.min = 0;
+            slider.max = 127;
+            slider.value = 0;
+            
+            // Add MIDI CC functionality to slider
+            slider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                const ccNumber = i + 1; // CC numbers 1, 2, 3 for the three sliders
+                sendMIDICC(15, ccNumber, value); // Send on channel 15
+                sendMIDICC(16, ccNumber, value); // Send on channel 16
+            });
+
+            sliderContainer.appendChild(slider);
 
                 const buttonsGrid = document.createElement('div');
                 buttonsGrid.className = 'buttons-grid';
@@ -519,6 +529,14 @@
                 selectedButton.classList.add('selected');
             }
         });
+
+            // Add MIDI CC sending function
+    function sendMIDICC(channel, ccNumber, value) {
+        if (midiOutput) {
+            // MIDI CC message: Status byte (0xB0 + channel-1), CC number, Value
+            midiOutput.send([0xB0 + (channel - 1), ccNumber, value]);
+        }
+    }
 
         // Export/Import
         document.getElementById('exportButton').addEventListener('click', () => {
