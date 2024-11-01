@@ -86,16 +86,37 @@
         }
 
         .slider-container {
-            width: 30px;
-            height: 100%;
-        }
+    width: 60px; /* Increased width to accommodate larger slider head */
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
 
-        .vertical-slider {
-            writing-mode: bt-lr;
-            -webkit-appearance: slider-vertical;
-            width: 30px;
-            height: 100%;
-        }
+.slider-container::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    width: 2px; /* Thin track */
+    background: linear-gradient(to bottom,
+        #666 1px,
+        transparent 1px
+    );
+    background-size: 100% 20px; /* Space between tick marks */
+    transform: translateX(-50%);
+    z-index: 0;
+}
+
+.vertical-slider {
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    width: 60px;
+    height: 100%;
+    background: transparent;
+    position: relative;
+    z-index: 1;
+}
 
         .color-field {
             display: flex;
@@ -179,6 +200,12 @@
         .selected {
             outline: 2px solid white;
         }
+
+        #exportButton {
+    padding: 2px 8px; /* Add padding for a larger clickable area */
+    border-radius: 4px; /* Optional: round corners */
+    border: solid;
+}
 
         .midi-button {
     width: 100%;
@@ -539,29 +566,92 @@
     }
 
         // Export/Import
-        document.getElementById('exportButton').addEventListener('click', () => {
-            const dataStr = JSON.stringify(state);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const exportName = 'midi_settings.json';
-
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportName);
-            linkElement.click();
+    document.getElementById('exportButton').addEventListener('click', () => {
+        // Update state with current section headers before export
+        document.querySelectorAll('.page').forEach((page) => {
+            const pageId = page.id;
+            page.querySelectorAll('.section').forEach((section, sectionIndex) => {
+                const header = section.querySelector('.section-header');
+                state.pages[pageId].sections[sectionIndex].header = header.value;
+            });
         });
 
-        document.getElementById('importInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
+        const dataStr = JSON.stringify(state);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const exportName = 'midi_settings.json';
 
-            reader.onload = (event) => {
-                const importedState = JSON.parse(event.target.result);
-                Object.assign(state, importedState);
-                location.reload();
-            };
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportName);
+        linkElement.click();
+    });
 
-            reader.readAsText(file);
-        });
+
+    document.getElementById('importInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            const importedState = JSON.parse(event.target.result);
+            Object.assign(state, importedState);
+            
+            // Update UI with imported state
+            Object.keys(state.pages).forEach((pageId) => {
+                const page = document.getElementById(pageId);
+                
+                // Update section headers
+                state.pages[pageId].sections.forEach((section, sectionIndex) => {
+                    const sectionElement = page.querySelector(`.section:nth-child(${sectionIndex + 1})`);
+                    const headerInput = sectionElement.querySelector('.section-header');
+                    headerInput.value = section.header;
+
+                    // Update buttons
+                    section.buttons.forEach((buttonData, buttonIndex) => {
+                        if (buttonData) {
+                            const buttonSpace = sectionElement.querySelector(`.button-space:nth-child(${buttonIndex + 1})`);
+                            buttonSpace.innerHTML = '';
+
+                            const midiButton = document.createElement('button');
+                            midiButton.className = 'midi-button';
+                            midiButton.textContent = buttonData.name;
+                            midiButton.style.backgroundColor = buttonData.bgColor;
+                            midiButton.style.color = buttonData.textColor;
+
+                            const editIcon = document.createElement('div');
+                            editIcon.className = 'edit-icon';
+                            editIcon.textContent = '✎';
+                            editIcon.onclick = (e) => {
+                                e.stopPropagation();
+                                openEditMenu(pageId, sectionIndex, buttonIndex);
+                            };
+
+                            midiButton.onclick = () => {
+                                midiButton.classList.add('flash');
+                                setTimeout(() => {
+                                    midiButton.classList.remove('flash');
+                                }, 200);
+                                sendMIDIMessage(15, buttonData.channel15Note);
+                                sendMIDIMessage(16, buttonData.channel16Note);
+                            };
+
+                            midiButton.appendChild(editIcon);
+                            buttonSpace.appendChild(midiButton);
+                        }
+                    });
+                });
+            });
+
+            // Switch to the active page from imported state
+            if (state.currentPage) {
+                document.querySelector('.tab.active').classList.remove('active');
+                document.querySelector('.page.active').classList.remove('active');
+                document.querySelector(`[data-page="${state.currentPage}"]`).classList.add('active');
+                document.getElementById(state.currentPage).classList.add('active');
+            }
+        };
+
+        reader.readAsText(file);
+    });
     </script>
 </body>
 </html>
