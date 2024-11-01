@@ -3,442 +3,547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI Controller Interface</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>MIDI Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #333;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: #555;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-content {
+    display: flex;
+    gap: 20px;
+    height: 300px;
+    align-items: center; /* Center items vertically */
+}
+
+.buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    flex-grow: 1;
+    height: 100%; /* Fill the container height */
+}
+
+.button-space {
+    background: #333;
+    width: 100%; /* Fill grid cell width */
+    height: 100%; /* Fill grid cell height */
+    position: relative;
+    cursor: pointer;
+}
+
+        .section-header {
+            background: none;
+            border: 1px solid #333;
+            color: white;
+            padding: 5px;
+            width: 100%;
+        }
+
+        .slider-container {
+            width: 30px;
+            height: 100%;
+        }
+
+        .vertical-slider {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 30px;
+            height: 100%;
+        }
+
+        .color-field {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .color-preview {
+            width: 25px;
+            height: 25px;
+            border: 1px solid #444;
+            cursor: pointer;
+        }
+
+        .color-label {
+            flex-grow: 1;
+        }
+
+
+
+        .button-space:hover .add-button {
+            display: flex;
+        }
+
+        .add-button {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .midi-button {
+            width: 100%;
+            height: 100%;
+            border: none;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .midi-button:hover .edit-icon {
+            display: block;
+        }
+
+        .edit-icon {
+            display: none;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .edit-menu {
+            display: none;
+            position: fixed;
+            width: 300px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            padding: 20px;
+            border: 1px solid #444;
+            z-index: 1000;
+        }
+
+        .edit-menu.active {
+            display: block;
+        }
+
+        .edit-menu input, .edit-menu button {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+        }
+
+        .selected {
+            outline: 2px solid white;
+        }
+
+        .midi-button {
+    width: 100%;
+    height: 100%;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.1s;
+}
+
+.flash::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    animation: flashAnimation 0.2s;
+}
+
+@keyframes flashAnimation {
+    0% { opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; }
+}
+    </style>
 </head>
 <body>
-    <div class="pages-nav">
-        <button class="page-button active" data-page="1">Page 1</button>
-        <button class="page-button" data-page="2">Page 2</button>
-        <button class="page-button" data-page="3">Page 3</button>
-        <button class="page-button add-page-button">+</button>
+    <div class="tabs" id="tabs">
+        <button class="tab active" data-page="page1">Page 1</button>
+        <button class="tab" data-page="page2">Page 2</button>
+        <button class="tab" data-page="page3">Page 3</button>
     </div>
 
-    <!-- Grid content will be loaded here -->
-    <div id="grid-container"></div>
-
-    <div class="export-import">
-        <button id="exportButton">Export Layout</button>
-        <button id="importButton">Import Layout</button>
-        <input type="file" id="importInput" accept=".json">
+    <div id="pages">
+        <div class="page active" id="page1"></div>
+        <div class="page" id="page2"></div>
+        <div class="page" id="page3"></div>
     </div>
 
-    <div class="dialog-overlay"></div>
-    <div class="dialog">
-        <button class="close-button">×</button>
-        <input type="text" class="button-name-input" placeholder="Button Name">
-        <div class="dialog-content">
-            <div class="dialog-row">
-                <label>Button Color:</label>
-                <input type="color" id="buttonColor">
-            </div>
-            <div class="dialog-row">
-                <label>Text Color:</label>
-                <input type="color" id="textColor">
-            </div>
-            <div class="dialog-row">
-                <label>Channel 15 Note:</label>
-                <input type="number" id="note15" min="0" max="127">
-            </div>
-            <div class="dialog-row">
-                <label>Channel 16 Note:</label>
-                <input type="number" id="note16" min="0" max="127">
-            </div>
+    <div class="edit-menu" id="editMenu">
+        <input type="text" id="buttonName" placeholder="Button Name">
+        
+        <div class="color-field">
+            <span class="color-label">Button Color:</span>
+            <div class="color-preview" id="bgColorPreview"></div>
+            <input type="color" id="bgColor" style="display: none;">
         </div>
-        <button class="test-button" id="testButton">Test</button>
+        
+        <div class="color-field">
+            <span class="color-label">Text Color:</span>
+            <div class="color-preview" id="textColorPreview"></div>
+            <input type="color" id="textColor" style="display: none;">
+        </div>
+        
+        <input type="number" id="channel15Note" placeholder="Channel 15 Note" min="0" max="127">
+        <input type="number" id="channel16Note" placeholder="Channel 16 Note" min="0" max="127">
+        <button id="testButton">Test</button>
     </div>
+
+    <button id="exportButton">Export Settings</button>
+    <input type="file" id="importInput" accept=".json">
 
     <script>
         let midiOutput = null;
+        let currentButton = null;
         let selectedButton = null;
-        let currentEditButton = null;
+        const state = {
+            pages: {},
+            currentPage: 'page1'
+        };
 
-        // Initialize Web MIDI
-        navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        // Initialize MIDI
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess()
+                .then(onMIDISuccess)
+                .catch(err => console.error('MIDI Access Failed:', err));
+        }
 
         function onMIDISuccess(midiAccess) {
-        const outputs = Array.from(midiAccess.outputs.values());
-        midiOutput = outputs.find(output => output.name === 'IAC Driver Bus 1');
-        if (!midiOutput) {
-            console.error('IAC Driver Bus 1 not found');
-            return;
-        }
-        initializeInterface();
-    }
-
-            // Load the grid content
-            fetch('grid.html')
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('grid-container').innerHTML = html;
-            });
-
-        function onMIDIFailure() {
-            console.error('Could not access MIDI devices');
-        }
-
-        function initializeInterface() {
-        // Generate buttons for each grid
-        document.querySelectorAll('.buttons-grid').forEach(grid => {
-            for (let i = 0; i < 15; i++) {
-                const button = document.createElement('button');
-                button.className = 'midi-button';
-                button.style.backgroundColor = '#333';
-                button.style.color = '#fff';
-                button.dataset.note15 = '0';
-                button.dataset.note16 = '0';
-                
-                const buttonText = document.createElement('span');
-                buttonText.className = 'button-text';
-                buttonText.contentEditable = true;
-                buttonText.textContent = `Button ${i + 1}`;
-                
-                const editIcon = document.createElement('span');
-                editIcon.className = 'edit-icon';
-                editIcon.innerHTML = '⚙️';
-                
-                button.appendChild(buttonText);
-                button.appendChild(editIcon);
-                grid.appendChild(button);
-            }
-        });
-
-        initializeEventListeners();
-        initializeDragAndDrop();
-    }
-
-    function initializeDragAndDrop() {
-        const buttons = document.querySelectorAll('.midi-button');
-        buttons.forEach(button => {
-            button.setAttribute('draggable', 'true');
-            
-            button.addEventListener('dragstart', (e) => {
-                e.target.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', e.target.innerHTML);
-                e.dataTransfer.effectAllowed = 'move';
-            });
-
-            button.addEventListener('dragend', (e) => {
-                e.target.classList.remove('dragging');
-            });
-
-            button.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            button.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const draggingButton = document.querySelector('.dragging');
-                const dropTarget = e.target.closest('.midi-button');
-                
-                if (draggingButton && dropTarget) {
-                    const grid = dropTarget.parentElement;
-                    const buttons = [...grid.querySelectorAll('.midi-button')];
-                    const fromIndex = buttons.indexOf(draggingButton);
-                    const toIndex = buttons.indexOf(dropTarget);
-                    
-                    // Swap button positions
-                    if (fromIndex !== toIndex) {
-                        const tempHTML = draggingButton.innerHTML;
-                        const tempStyle = draggingButton.style.cssText;
-                        const tempDataset = {...draggingButton.dataset};
-                        
-                        draggingButton.innerHTML = dropTarget.innerHTML;
-                        draggingButton.style.cssText = dropTarget.style.cssText;
-                        Object.keys(dropTarget.dataset).forEach(key => {
-                            draggingButton.dataset[key] = dropTarget.dataset[key];
-                        });
-                        
-                        dropTarget.innerHTML = tempHTML;
-                        dropTarget.style.cssText = tempStyle;
-                        Object.keys(tempDataset).forEach(key => {
-                            dropTarget.dataset[key] = tempDataset[key];
-                        });
-                    }
+            for (let output of midiAccess.outputs.values()) {
+                if (output.name === 'IAC Driver Bus 1') {
+                    midiOutput = output;
+                    break;
                 }
-            });
-        });
-    }
-
-    function initializeEventListeners() {
-    // Page navigation
-    document.querySelectorAll('.page-button').forEach(button => {
-        button.addEventListener('click', () => {
-            if (button.classList.contains('add-page-button')) {
-                // Handle adding new page
-                return;
             }
+        }
 
-            document.querySelectorAll('.page-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.page-container').forEach(page => page.classList.remove('active'));
-
-            button.classList.add('active');
-            document.getElementById(`page${button.dataset.page}`).classList.add('active');
-        });
-    });
-
-    // MIDI sliders
-    document.querySelectorAll('.midi-slider').forEach((slider, index) => {
-        slider.addEventListener('input', (e) => {
+        function sendMIDIMessage(channel, note) {
             if (midiOutput) {
-                midiOutput.send([0xB0, index, parseInt(e.target.value)]);
+                midiOutput.send([0x90 + channel - 1, note, 100]);
+                setTimeout(() => {
+                    midiOutput.send([0x80 + channel - 1, note, 0]);
+                }, 100);
+            }
+        }
+
+        // Create page structure
+        function createPageStructure(pageId) {
+            const page = document.getElementById(pageId);
+            state.pages[pageId] = {
+                sections: []
+            };
+
+            for (let i = 0; i < 3; i++) {
+                const section = document.createElement('div');
+                section.className = 'section';
+
+                const header = document.createElement('input');
+                header.type = 'text';
+                header.className = 'section-header';
+                header.value = `Section ${i + 1}`;
+
+                const sectionContent = document.createElement('div');
+                sectionContent.className = 'section-content';
+
+                const sliderContainer = document.createElement('div');
+                sliderContainer.className = 'slider-container';
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.className = 'vertical-slider';
+                slider.min = 0;
+                slider.max = 127;
+                sliderContainer.appendChild(slider);
+
+                const buttonsGrid = document.createElement('div');
+                buttonsGrid.className = 'buttons-grid';
+
+                for (let j = 0; j < 15; j++) {
+                    const buttonSpace = document.createElement('div');
+                    buttonSpace.className = 'button-space';
+                    buttonSpace.dataset.index = j;
+
+                    const addButton = document.createElement('div');
+                    addButton.className = 'add-button';
+                    addButton.textContent = '+';
+                    addButton.onclick = (e) => {
+                        e.stopPropagation();
+                        openEditMenu(pageId, i, j);
+                    };
+
+                    buttonSpace.appendChild(addButton);
+                    buttonsGrid.appendChild(buttonSpace);
+                }
+
+                sectionContent.appendChild(sliderContainer);
+                sectionContent.appendChild(buttonsGrid);
+                
+                section.appendChild(header);
+                section.appendChild(sectionContent);
+                page.appendChild(section);
+
+                state.pages[pageId].sections.push({
+                    header: `Section ${i + 1}`,
+                    buttons: Array(15).fill(null)
+                });
+            }
+        }
+
+        // Initialize pages
+        ['page1', 'page2', 'page3'].forEach(createPageStructure);
+
+        // Tab switching
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab')) {
+                document.querySelector('.tab.active').classList.remove('active');
+                document.querySelector('.page.active').classList.remove('active');
+                e.target.classList.add('active');
+                const pageId = e.target.dataset.page;
+                document.getElementById(pageId).classList.add('active');
+                state.currentPage = pageId;
             }
         });
-    });
 
-    // Button grid navigation and triggering
-    document.addEventListener('keydown', handleKeyboardNavigation);
+ // Modify openEditMenu function
+ function openEditMenu(pageId, sectionIndex, buttonIndex) {
+            const editMenu = document.getElementById('editMenu');
+            editMenu.classList.add('active');
+            currentButton = { pageId, sectionIndex, buttonIndex };
 
-    // Button click and edit handlers
-    document.querySelectorAll('.midi-button').forEach(button => {
-        button.addEventListener('click', () => triggerButton(button));
-        button.querySelector('.edit-icon').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openEditDialog(button);
+            // Reset all fields
+            document.getElementById('buttonName').value = '';
+            document.getElementById('bgColor').value = '#000000';
+            document.getElementById('textColor').value = '#ffffff';
+            document.getElementById('channel15Note').value = '';
+            document.getElementById('channel16Note').value = '';
+            
+            updateColorPreviews();
+
+            const buttonData = state.pages[pageId].sections[sectionIndex].buttons[buttonIndex];
+            if (buttonData) {
+                document.getElementById('bgColor').value = buttonData.bgColor;
+                document.getElementById('textColor').value = buttonData.textColor;
+                document.getElementById('channel15Note').value = buttonData.channel15Note;
+                document.getElementById('channel16Note').value = buttonData.channel16Note;
+                document.getElementById('buttonName').value = buttonData.name;
+                updateColorPreviews();
+            }
+        }
+
+        // Add color preview functionality
+        function updateColorPreviews() {
+            document.getElementById('bgColorPreview').style.backgroundColor = 
+                document.getElementById('bgColor').value;
+            document.getElementById('textColorPreview').style.backgroundColor = 
+                document.getElementById('textColor').value;
+        }
+
+        document.getElementById('bgColorPreview').addEventListener('click', () => {
+            document.getElementById('bgColor').click();
         });
-    });
 
-    // Dialog handlers
-    document.getElementById('saveButton').addEventListener('click', saveButtonSettings);
-    document.getElementById('cancelButton').addEventListener('click', closeDialog);
-    document.getElementById('testButton').addEventListener('click', testButtonSettings);
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeDialog();
-        if (e.key === 'Enter' && document.querySelector('.dialog.active')) saveButtonSettings();
-    });
+        document.getElementById('textColorPreview').addEventListener('click', () => {
+            document.getElementById('textColor').click();
+        });
 
-// Dialog handlers
-document.querySelector('.close-button').addEventListener('click', closeDialog);
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.querySelector('.dialog.active')) {
-        closeDialog();
-    }
-});
-    
-    // Real-time updates
-    document.getElementById('buttonColor').addEventListener('input', updateButtonInRealTime);
-    document.getElementById('textColor').addEventListener('input', updateButtonInRealTime);
-    document.getElementById('note15').addEventListener('input', updateButtonInRealTime);
-    document.getElementById('note16').addEventListener('input', updateButtonInRealTime);
-    document.querySelector('.button-name-input').addEventListener('input', updateButtonInRealTime);
+        document.getElementById('bgColor').addEventListener('input', updateColorPreviews);
+        document.getElementById('textColor').addEventListener('input', updateColorPreviews);
 
-    // Modify button text handling
-    document.querySelectorAll('.midi-button .button-text').forEach(text => {
-        text.contentEditable = false; // Disable direct editing
-    });
 
-    // Export/Import handlers
-    document.getElementById('exportButton').addEventListener('click', exportLayout);
-    document.getElementById('importButton').addEventListener('click', () => {
-        document.getElementById('importInput').click();
-    });
-    document.getElementById('importInput').addEventListener('change', importLayout);
-}
+                // Add click event listener to close edit menu when clicking outside
+                document.addEventListener('click', (e) => {
+            const editMenu = document.getElementById('editMenu');
+            if (!editMenu.contains(e.target) && 
+                !e.target.classList.contains('add-button') && 
+                !e.target.classList.contains('edit-icon')) {
+                editMenu.classList.remove('active');
+            }
+        });
 
-        function handleKeyboardNavigation(e) {
-            if (!selectedButton) {
-                selectedButton = document.querySelector('.midi-button');
-                selectedButton.classList.add('selected');
+        function updateButton() {
+            if (!currentButton) return;
+
+            const { pageId, sectionIndex, buttonIndex } = currentButton;
+            const buttonData = {
+                name: document.getElementById('buttonName').value,
+                bgColor: document.getElementById('bgColor').value,
+                textColor: document.getElementById('textColor').value,
+                channel15Note: parseInt(document.getElementById('channel15Note').value),
+                channel16Note: parseInt(document.getElementById('channel16Note').value)
+            };
+
+            state.pages[pageId].sections[sectionIndex].buttons[buttonIndex] = buttonData;
+
+            const buttonSpace = document.querySelector(`#${pageId} .section:nth-child(${sectionIndex + 1}) .button-space:nth-child(${buttonIndex + 1})`);
+            buttonSpace.innerHTML = '';
+
+            const midiButton = document.createElement('button');
+            midiButton.className = 'midi-button';
+            midiButton.textContent = buttonData.name;
+            midiButton.style.backgroundColor = buttonData.bgColor;
+            midiButton.style.color = buttonData.textColor;
+
+            const editIcon = document.createElement('div');
+            editIcon.className = 'edit-icon';
+            editIcon.textContent = '✎';
+            editIcon.onclick = (e) => {
+                e.stopPropagation();
+                openEditMenu(pageId, sectionIndex, buttonIndex);
+            };
+
+            midiButton.onclick = () => {
+                midiButton.classList.add('flash');
+    setTimeout(() => {
+        midiButton.classList.remove('flash');
+    }, 200);
+    sendMIDIMessage(15, buttonData.channel15Note);
+    sendMIDIMessage(16, buttonData.channel16Note);
+            };
+
+            midiButton.appendChild(editIcon);
+            buttonSpace.appendChild(midiButton);
+        }
+
+
+        // Event listeners
+        document.getElementById('editMenu').addEventListener('input', updateButton);
+        document.getElementById('testButton').addEventListener('click', () => {
+            const ch15 = parseInt(document.getElementById('channel15Note').value);
+            const ch16 = parseInt(document.getElementById('channel16Note').value);
+            sendMIDIMessage(15, ch15);
+            sendMIDIMessage(16, ch16);
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('editMenu').classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    document.getElementById('editMenu').classList.remove('active');
+                }
                 return;
             }
 
-            const grid = selectedButton.parentElement;
-            const buttons = Array.from(grid.children);
-            const currentIndex = buttons.indexOf(selectedButton);
+            const getCurrentGrid = () => {
+                return document.querySelector(`#${state.currentPage} .buttons-grid`);
+            };
+
+            const getButtonElements = () => {
+                return Array.from(getCurrentGrid().children);
+            };
+
+            if (!selectedButton) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    selectedButton = getButtonElements()[0];
+                    selectedButton.classList.add('selected');
+                    return;
+                }
+            }
+
+            const currentIndex = getButtonElements().indexOf(selectedButton);
             let newIndex;
 
-            switch(e.key) {
-                case 'ArrowRight':
-                    newIndex = (currentIndex + 1) % buttons.length;
-                    break;
+            switch (e.key) {
                 case 'ArrowLeft':
-                    newIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+                    newIndex = Math.max(0, currentIndex - 1);
+                    break;
+                case 'ArrowRight':
+                    newIndex = Math.min(14, currentIndex + 1);
                     break;
                 case 'ArrowUp':
-                    newIndex = (currentIndex - 5 + buttons.length) % buttons.length;
+                    newIndex = Math.max(0, currentIndex - 5);
                     break;
                 case 'ArrowDown':
-                    newIndex = (currentIndex + 5) % buttons.length;
+                    newIndex = Math.min(14, currentIndex + 5);
                     break;
                 case ' ':
-                    triggerButton(selectedButton);
+                    selectedButton.querySelector('.midi-button')?.click();
+                    e.preventDefault();
                     return;
             }
 
             if (newIndex !== undefined) {
                 selectedButton.classList.remove('selected');
-                selectedButton = buttons[newIndex];
+                selectedButton = getButtonElements()[newIndex];
                 selectedButton.classList.add('selected');
             }
-        }
+        });
 
-        function triggerButton(button) {
-            if (midiOutput) {
-                // Send MIDI notes on channels 15 and 16
-                const note15 = button.dataset.note15 || 60;
-                const note16 = button.dataset.note16 || 60;
-                
-                midiOutput.send([0x9E, note15, 127]); // Note on channel 15
-                midiOutput.send([0x9F, note16, 127]); // Note on channel 16
-                
-                // Note off after 100ms
-                setTimeout(() => {
-                    midiOutput.send([0x8E, note15, 0]);
-                    midiOutput.send([0x8F, note16, 0]);
-                }, 100);
-            }
+        // Export/Import
+        document.getElementById('exportButton').addEventListener('click', () => {
+            const dataStr = JSON.stringify(state);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportName = 'midi_settings.json';
 
-            // Visual feedback
-            button.classList.add('flash');
-            setTimeout(() => button.classList.remove('flash'), 100);
-        }
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportName);
+            linkElement.click();
+        });
 
-        function updateButtonInRealTime() {
-    if (!currentEditButton) return;
-    
-    const buttonColor = document.getElementById('buttonColor').value;
-    const textColor = document.getElementById('textColor').value;
-    
-    currentEditButton.style.backgroundColor = buttonColor;
-    currentEditButton.style.color = textColor;
-    currentEditButton.dataset.note15 = document.getElementById('note15').value;
-    currentEditButton.dataset.note16 = document.getElementById('note16').value;
-    
-    const buttonText = currentEditButton.querySelector('.button-text');
-    if (buttonText) {
-        buttonText.textContent = document.querySelector('.button-name-input').value;
-    }
-}
+        document.getElementById('importInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
 
-function openEditDialog(button) {
-    currentEditButton = button;
-    document.querySelector('.dialog-overlay').classList.add('active');
-    document.querySelector('.dialog').classList.add('active');
-    
-    // Set current values
-    document.getElementById('buttonColor').value = button.style.backgroundColor;
-    document.getElementById('textColor').value = button.style.color;
-    document.getElementById('note15').value = button.dataset.note15 || 60;
-    document.getElementById('note16').value = button.dataset.note16 || 60;
-    document.querySelector('.button-name-input').value = 
-        button.querySelector('.button-text').textContent;
-}
-
-
-function closeDialog() {
-    document.querySelector('.dialog-overlay').classList.remove('active');
-    document.querySelector('.dialog').classList.remove('active');
-    currentEditButton = null;
-}
-
-       
-
-function testButtonSettings() {
-    if (!currentEditButton || !midiOutput) return;
-    
-    const note15 = parseInt(document.getElementById('note15').value);
-    const note16 = parseInt(document.getElementById('note16').value);
-    
-    // Send MIDI notes on channels 15 and 16
-    midiOutput.send([0x9E, note15, 127]); // Note on channel 15
-    midiOutput.send([0x9F, note16, 127]); // Note on channel 16
-    
-    // Note off after 100ms
-    setTimeout(() => {
-        midiOutput.send([0x8E, note15, 0]);
-        midiOutput.send([0x8F, note16, 0]);
-    }, 100);
-    
-    // Visual feedback
-    currentEditButton.classList.add('flash');
-    setTimeout(() => currentEditButton.classList.remove('flash'), 100);
-}
-
-
-        function exportLayout() {
-        const layout = {
-            pages: []
-        };
-
-        document.querySelectorAll('.page-container').forEach((page, pageIndex) => {
-            const pageData = {
-                containers: []
+            reader.onload = (event) => {
+                const importedState = JSON.parse(event.target.result);
+                Object.assign(state, importedState);
+                location.reload();
             };
 
-            page.querySelectorAll('.control-container').forEach(container => {
-                const containerData = {
-                    name: container.querySelector('.header-input').value,
-                    sliderValue: container.querySelector('.midi-slider').value,
-                    buttons: []
-                };
-
-                container.querySelectorAll('.midi-button').forEach(button => {
-                    containerData.buttons.push({
-                        text: button.querySelector('.button-text').textContent,
-                        backgroundColor: button.style.backgroundColor,
-                        textColor: button.style.color,
-                        note15: button.dataset.note15,
-                        note16: button.dataset.note16
-                    });
-                });
-
-                pageData.containers.push(containerData);
-            });
-
-            layout.pages.push(pageData);
+            reader.readAsText(file);
         });
-
-        const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'midi-layout.json';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    function importLayout(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const layout = JSON.parse(e.target.result);
-                applyLayout(layout);
-            } catch (error) {
-                console.error('Error importing layout:', error);
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    function applyLayout(layout) {
-        layout.pages.forEach((pageData, pageIndex) => {
-            const page = document.getElementById(`page${pageIndex + 1}`);
-            if (!page) return;
-
-            pageData.containers.forEach((containerData, containerIndex) => {
-                const container = page.querySelectorAll('.control-container')[containerIndex];
-                if (!container) return;
-
-                container.querySelector('.header-input').value = containerData.name;
-                container.querySelector('.midi-slider').value = containerData.sliderValue;
-
-                containerData.buttons.forEach((buttonData, buttonIndex) => {
-                    const button = container.querySelectorAll('.midi-button')[buttonIndex];
-                    if (!button) return;
-
-                    button.querySelector('.button-text').textContent = buttonData.text;
-                    button.style.backgroundColor = buttonData.backgroundColor;
-                    button.style.color = buttonData.textColor;
-                    button.dataset.note15 = buttonData.note15;
-                    button.dataset.note16 = buttonData.note16;
-                });
-            });
-        });
-    }
     </script>
 </body>
 </html>
