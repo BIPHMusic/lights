@@ -202,6 +202,16 @@
             width: 100%;
         }
 
+        .note-field {
+    display: flex;
+    align-items: center;
+    gap: 0px; /* Space between label and input */
+}
+
+.note-field label {
+    width: 100px; /* Adjust width to your liking */
+}
+
         .selected {
             outline: 2px solid white;
         }
@@ -269,8 +279,16 @@
             <input type="color" id="textColor" style="display: none;">
         </div>
         
-        <input type="number" id="channel15Note" placeholder="Channel 15 Note" min="0" max="127">
-        <input type="number" id="channel16Note" placeholder="Channel 16 Note" min="0" max="127">
+        <div class="note-field">
+            <label for="channel15Note">Bank:</label>
+            <input type="number" id="channel15Note" placeholder="0" min="0" max="127">
+        </div>
+        
+        <div class="note-field">
+            <label for="channel16Note">Preset:</label>
+            <input type="number" id="channel16Note" placeholder="0" min="0" max="127">
+        </div>
+        
         <button id="testButton">Test</button>
     </div>
 
