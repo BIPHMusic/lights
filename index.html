@@ -47,8 +47,6 @@
         </div>
         <button class="test-button" id="testButton">Test</button>
     </div>
-    </div>
-<!--that might be too many </div>s-->
 
     <script>
         let midiOutput = null;
@@ -210,8 +208,13 @@
         if (e.key === 'Enter' && document.querySelector('.dialog.active')) saveButtonSettings();
     });
 
-    // Update dialog event listeners
-    document.querySelector('.close-button').addEventListener('click', closeDialog);
+// Dialog handlers
+document.querySelector('.close-button').addEventListener('click', closeDialog);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.querySelector('.dialog.active')) {
+        closeDialog();
+    }
+});
     
     // Real-time updates
     document.getElementById('buttonColor').addEventListener('input', updateButtonInRealTime);
@@ -294,12 +297,18 @@
         function updateButtonInRealTime() {
     if (!currentEditButton) return;
     
-    currentEditButton.style.backgroundColor = document.getElementById('buttonColor').value;
-    currentEditButton.style.color = document.getElementById('textColor').value;
+    const buttonColor = document.getElementById('buttonColor').value;
+    const textColor = document.getElementById('textColor').value;
+    
+    currentEditButton.style.backgroundColor = buttonColor;
+    currentEditButton.style.color = textColor;
     currentEditButton.dataset.note15 = document.getElementById('note15').value;
     currentEditButton.dataset.note16 = document.getElementById('note16').value;
-    currentEditButton.querySelector('.button-text').textContent = 
-        document.querySelector('.button-name-input').value;
+    
+    const buttonText = currentEditButton.querySelector('.button-text');
+    if (buttonText) {
+        buttonText.textContent = document.querySelector('.button-name-input').value;
+    }
 }
 
 function openEditDialog(button) {
